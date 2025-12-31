@@ -1,0 +1,34 @@
+[project]
+name = "webautotest"
+version = "0.1.0"
+description = "JPress 自动化测试框架"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    # 测试框架
+    "pytest==7.4.3",
+    "pytest-xdist==3.5.0",
+    "pytest-rerunfailures==14.0",
+    "pytest-timeout==2.2.0",
+    # UI自动化
+    "selenium==4.15.2",
+    # 报告和可视化
+    "allure-pytest==2.15.3",
+    # 数据管理
+    "PyYAML==6.0.1",
+    "faker~=8.8.1",
+    # 工具类
+    # 录屏相关
+    "opencv-python==4.8.1.78",
+    "numpy==1.24.3",
+    "python-dotenv==1.0.0",
+    "ddddocr>=1.5.6",
+    "pyautogui>=0.9.54",
+]
+[tool.pytest.ini_options]
+disable_test_id_escaping_and_forfeit_all_rights_to_community_support = true
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test"]
+addopts = ["-sv", "--alluredir=reports/allure-results", "--clean-alluredir"]

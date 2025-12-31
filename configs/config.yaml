@@ -1,0 +1,54 @@
+# 多环境配置
+dev: # 开发环境
+    base_url: "http://localhost:8080"
+    api_url: "http://localhost:3000/api"
+    database:
+        host: "localhost"
+        port: 3306
+        name: "dev_db"
+    browser: "chrome"
+    headless: false
+    timeout: 10 # 隐式等待，全局超时时间，单位秒
+    users:
+        admin:
+            username: "admin"
+            password: "test1234"
+        test_user:
+            username: "test@dev.com"
+            password: "test123"
+
+test: # 测试环境
+    base_url: "https://test.example.com"
+    api_url: "https://test-api.example.com"
+    database:
+        host: "test-db.example.com"
+        port: 3306
+        name: "test_db"
+    browser: "chrome"
+    headless: false
+    timeout: 15
+    users:
+        admin:
+            username: "admin@test.com"
+            password: "test123"
+        test_user:
+            username: "test@test.com"
+            password: "test456"
+
+prod: # 生产环境
+    base_url: "https://example.com"
+    api_url: "https://api.example.com"
+    database:
+        host: "prod-db.example.com"
+        port: 3306
+        name: "prod_db"
+    browser: "chrome"
+    headless: true
+    timeout: 20
+    users:
+        admin:
+            username: "admin@prod.com"
+            password: "${PROD_ADMIN_PASS}" # 从环境变量读取
+        test_user:
+            username: "test@prod.com"
+            password: "${PROD_TEST_PASS}"
