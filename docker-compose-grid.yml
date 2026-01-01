@@ -1,85 +1,106 @@
-version: "3"
+# To execute this docker compose yml file use `docker compose -f docker-compose-v3-video.yml up`
+# Add the `-d` flag at the end for detached execution
+# To stop the execution, hit Ctrl+C, and then `docker compose -f docker-compose-v3-video.yml down`
+
 networks:
     webautotest_network:
         external: true
 
 services:
+    chrome:
+        image: selenium/node-chrome:4.39.0-20251212
+        platform: linux/amd64
+        shm_size: 2gb
+        depends_on:
+            - selenium-hub
+        environment:
+            - SE_EVENT_BUS_HOST=selenium-hub
+        networks:
+            - webautotest_network
+
+    edge:
+        image: selenium/node-edge:4.39.0-20251212
+        platform: linux/amd64
+        shm_size: 2gb
+        depends_on:
+            - selenium-hub
+        environment:
+            - SE_EVENT_BUS_HOST=selenium-hub
+        networks:
+            - webautotest_network
+
+    firefox:
+        image: selenium/node-firefox:4.39.0-20251212
+        shm_size: 2gb
+        depends_on:
+            - selenium-hub
+        environment:
+            - SE_EVENT_BUS_HOST=selenium-hub
+        networks:
+            - webautotest_network
+
+    chrome_video:
+        image: selenium/video:ffmpeg-8.0-20251212
+        volumes:
+            - ./reports/videos:/videos
+        depends_on:
+            - chrome
+        environment:
+            - DISPLAY_CONTAINER_NAME=chrome
+            - SE_NODE_GRID_URL=http://selenium-hub:4444
+            #      - FILE_NAME=chrome_video.mp4
+            - SE_VIDEO_FILE_NAME=auto
+        networks:
+            - webautotest_network
+
+    edge_video:
+        image: selenium/video:ffmpeg-8.0-20251212
+        volumes:
+            - ./reports/videos:/videos
+        depends_on:
+            - edge
+        environment:
+            - DISPLAY_CONTAINER_NAME=edge
+            - SE_NODE_GRID_URL=http://selenium-hub:4444
+            #      - FILE_NAME=edge_video.mp4
+            - SE_VIDEO_FILE_NAME=auto
+        networks:
+            - webautotest_network
+
+    firefox_video:
+        image: selenium/video:ffmpeg-8.0-20251212
+        volumes:
+            - ./reports/videos:/videos
+        depends_on:
+            - firefox
+        environment:
+            - DISPLAY_CONTAINER_NAME=firefox
+            - SE_NODE_GRID_URL=http://selenium-hub:4444
+            #      - FILE_NAME=firefox_video.mp4
+            - SE_VIDEO_FILE_NAME=auto
+        networks:
+            - webautotest_network
+
     selenium-hub:
-        image: selenium/hub:latest
+        image: selenium/hub:4.39.0-20251212
         container_name: selenium-hub
         ports:
             - "4442:4442"
             - "4443:4443"
-            - "4444:4444" # 标准Hub端口
+            - "4444:4444"
         networks:
             - webautotest_network
 
-    chrome-node:
-        image: selenium/node-chrome:latest
-        container_name: chrome-node
-        shm_size: 2gb # Chrome需要较大的共享内存
-        depends_on:
-            - selenium-hub
+    # File browser to manage the videos from local volume
+    file_browser:
+        image: filebrowser/filebrowser:latest
+        container_name: file_browser
+        restart: always
+        ports:
+            - "8081:80"
+        volumes:
+            - ./reports/videos:/srv
         environment:
-            - SE_EVENT_BUS_HOST=selenium-hub
-            - SE_EVENT_BUS_PUBLISH_PORT=4442
-            - SE_EVENT_BUS_SUBSCRIBE_PORT=4443
-            - SE_NODE_MAX_SESSIONS=4 # 最大并发会话数
-        networks:
-            - webautotest_network
-
-    firefox-node:
-        image: selenium/node-firefox:latest
-        container_name: firefox-node
-        shm_size: 2gb
-        depends_on:
-            - selenium-hub
-        environment:
-            - SE_EVENT_BUS_HOST=selenium-hub
-            - SE_EVENT_BUS_PUBLISH_PORT=4442
-            - SE_EVENT_BUS_SUBSCRIBE_PORT=4443
-            - SE_NODE_MAX_SESSIONS=4
-        networks:
-            - webautotest_network
-
-    edge-node:
-        image: selenium/node-edge:latest
-        container_name: edge-node
-        shm_size: 2gb
-        depends_on:
-            - selenium-hub
-        environment:
-            - SE_EVENT_BUS_HOST=selenium-hub
-            - SE_EVENT_BUS_PUBLISH_PORT=4442
-            - SE_EVENT_BUS_SUBSCRIBE_PORT=4443
-            - SE_NODE_MAX_SESSIONS=4
-        networks:
-            - webautotest_network
-
-    chrome-node-2:
-        image: selenium/node-chrome:latest
-        container_name: chrome-node-2
-        shm_size: 2gb # Chrome需要较大的共享内存
-        depends_on:
-            - selenium-hub
-        environment:
-            - SE_EVENT_BUS_HOST=selenium-hub
-            - SE_EVENT_BUS_PUBLISH_PORT=4442
-            - SE_EVENT_BUS_SUBSCRIBE_PORT=4443
-            - SE_NODE_MAX_SESSIONS=4 # 最大并发会话数
-        networks:
-            - webautotest_network
-
-    chrome-node-3:
-        image: selenium/node-chrome:latest
-        container_name: chrome-node-3
-        shm_size: 2gb # Chrome需要较大的共享内存
-        depends_on:
-            - selenium-hub
-        environment:
-            - SE_EVENT_BUS_HOST=selenium-hub
-            - SE_EVENT_BUS_PUBLISH_PORT=4442
-            - SE_EVENT_BUS_SUBSCRIBE_PORT=4443
-            - SE_NODE_MAX_SESSIONS=4 # 最大并发会话数
+            - FB_NOAUTH=true
         networks:
             - webautotest_network

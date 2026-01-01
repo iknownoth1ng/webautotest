@@ -47,7 +47,7 @@ class ConfigManager:
     def get_config(self, env=None):
         """获取指定环境的配置，并应用覆盖值"""
         if env is None:
-            env = os.getenv("ENV", "dev")
+            env = os.getenv("ENV", default="dev")
             # print(f"使用环境变量 ENV={env} 作为配置环境")
 
         if env not in self._configs:

@@ -8,7 +8,6 @@
 """
 
 import os
-import time
 
 import pytest
 
@@ -17,8 +16,8 @@ from configs.path import REPORTS_DIR, SCREENSHOTS_DIR, VIDEOS_DIR
 from src.core.logger import logger
 from src.core.webdriver_manager import DriverManager
 from src.utils.allure_utils import AllureUtils
+from src.utils.browser_video_recorder import BrowserVideoRecorder
 from src.utils.file_utils import ensure_empty_directory
-from src.utils.video_recorder import VideoRecorder
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -72,6 +71,33 @@ def admin_login(driver):
     return admin_login_page
 
 
+@pytest.fixture(scope="function")
+def video_recorder(driver, request):
+    """提供浏览器视频录制器"""
+    # 获取测试名称作为视频文件名
+    test_name = request.node.name
+    logger.info(f"初始化视频录制器: {test_name}")
+    try:
+        recorder = BrowserVideoRecorder(driver, fps=10, video_name=test_name)
+        logger.info(f"开始录制视频: {recorder.video_path}")
+        recorder.start_recording()
+        yield recorder
+        logger.info("停止录制视频")
+        recorder.stop_recording()
+        # 附加视频到Allure报告
+        if recorder.video_path.exists():
+            logger.info(f"附加视频到报告: {recorder.video_path}")
+            AllureUtils.attach_video(str(recorder.video_path), str(recorder.video_path))
+        else:
+            logger.warning(f"视频文件不存在: {recorder.video_path}")
+    except Exception as e:
+        logger.error(f"视频录制失败: {e}")
+        import traceback
+
+        logger.error(traceback.format_exc())
+        yield None
+
+
 def pytest_configure(config):
     """pytest配置"""
     # 确保报告目录存在且为空
@@ -85,7 +111,7 @@ def pytest_configure(config):
 def pytest_addoption(parser):
     """添加命令行选项"""
     parser.addoption(
-        "--env", action="store", default="test", help="测试环境: dev, test, prod"
+        "--env", action="store", default="dev", help="测试环境: dev, test, prod"
     )
     parser.addoption(
         "--browser",
@@ -122,33 +148,33 @@ def pytest_runtest_makereport(item, call):
         logger.error(f"测试 {item.name} 失败: {call.excinfo.value}")
 
 
-@pytest.fixture(scope="function")
-def video_recorder(request):
-    """为每个测试提供录屏功能"""
-    recorder = None
+# @pytest.fixture(scope="function")
+# def video_recorder(request):
+#     """为每个测试提供录屏功能"""
+#     recorder = None
 
-    # 检查是否需要录屏（可通过命令行参数或标记控制）
-    if request.config.getoption("--record-video", default=True):
-        recorder = VideoRecorder()
-        recorder.start_recording()
-        logger.debug(f"为测试 '{request.node.name}' 初始化录屏器")
+#     # 检查是否需要录屏（可通过命令行参数或标记控制）
+#     if request.config.getoption("--record-video", default=True):
+#         recorder = VideoRecorder()
+#         recorder.start_recording()
+#         logger.debug(f"为测试 '{request.node.name}' 初始化录屏器")
 
-    yield recorder  # 将录屏器实例提供给测试函数
+#     yield recorder  # 将录屏器实例提供给测试函数
 
-    # 测试结束后保存视频
-    if recorder:
-        test_name = request.node.name
-        timestamp = time.strftime("%Y%m%d_%H%M%S")
-        video_dir = VIDEOS_DIR
-        video_dir.mkdir(parents=True, exist_ok=True)
-        video_path = video_dir / f"{test_name}_{timestamp}.webm"
+#     # 测试结束后保存视频
+#     if recorder:
+#         test_name = request.node.name
+#         timestamp = time.strftime("%Y%m%d_%H%M%S")
+#         video_dir = VIDEOS_DIR
+#         video_dir.mkdir(parents=True, exist_ok=True)
+#         video_path = video_dir / f"{test_name}_{timestamp}.webm"
 
-        saved_path = recorder.stop_recording(video_path)
+#         saved_path = recorder.stop_recording(video_path)
 
-        # 如果视频保存成功，可附加到Allure报告
-        if saved_path and saved_path.exists():
-            # 这里可以调用Allure附件添加方法
-            AllureUtils.attach_video(str(video_path), str(saved_path))
+#         # 如果视频保存成功，可附加到Allure报告
+#         if saved_path and saved_path.exists():
+#             # 这里可以调用Allure附件添加方法
+#             AllureUtils.attach_video(str(video_path), str(saved_path))
 
 
 # def pytest_exception_interact(node, call, report):

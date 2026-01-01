@@ -7,13 +7,13 @@
 @Desp    : 管理员登录测试用例
 """
 
+from time import sleep
+
 import allure
 import pytest
 
 from configs import config
 from src.pages.admin_login_page import AdminLoginPage
-
-# from src.utils.video_recorder import record_video
 
 
 @allure.feature("管理员登录")
@@ -29,10 +29,9 @@ class TestAdminLogin:
 
     @allure.title("管理员成功登录测试")
     @allure.description("测试管理员使用正确的用户名和密码登录系统")
-    # @record_video()
     def test_admin_login_success(
         self,
-        video_recorder,
+        # video_recorder,
         driver,
         admin_login_data,
     ):
@@ -49,6 +48,7 @@ class TestAdminLogin:
 
         with allure.step("识别并输入验证码"):
             admin_login_page.input_captcha()
+            sleep(5)
 
         with allure.step("点击登录按钮"):
             admin_login_page.click_admin_login_btn()
