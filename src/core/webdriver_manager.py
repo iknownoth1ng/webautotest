@@ -12,7 +12,10 @@ import traceback
 from pathlib import Path
 
 from selenium import webdriver
+from selenium.webdriver.chrome.options import Options as ChromeOptions
 from selenium.webdriver.chrome.service import Service as ChromeService
+from selenium.webdriver.edge.options import Options as EdgeOptions
+from selenium.webdriver.firefox.options import Options as FirefoxOptions
 
 from configs import config
 from configs.path import BASE_DIR, DRIVERS_DIR
@@ -39,27 +42,79 @@ class DriverManager:
         """创建浏览器驱动"""
         # 从配置获取浏览器类型
         if browser_type is None:
-            browser_type = cls._current_config.get("browser", "chrome")
+            browser_type = cls._current_config.webdriver.browser
 
-        browser_type = browser_type
+        # 检查是否启用分布式模式
+        mode = cls._current_config.webdriver.mode
+        if mode == "grid":
+            logger.info("使用Selenium Grid分布式模式")
+            return cls._create_remote_driver(browser_type)
+        else:
+            logger.info("使用本地浏览器模式")
+            return cls._create_local_driver(browser_type)
 
-        logger.info(f"启动浏览器: {browser_type}")
+    @classmethod
+    def _create_local_driver(cls, browser_type=None):
+        """创建本地浏览器驱动"""
+        if browser_type is None:
+            browser_type = cls._current_config.webdriver.browser
 
-        if browser_type == "chrome":
-            return cls._create_chrome_driver()
-        elif browser_type == "firefox":
-            return cls._create_firefox_driver()
-        elif browser_type == "edge":
-            return cls._create_edge_driver()
+        logger.info(f"启动本地浏览器: {browser_type}")
+
+        driver_creators = {
+            "chrome": cls._create_chrome_driver,
+            "firefox": cls._create_firefox_driver,
+            "edge": cls._create_edge_driver,
+        }
+
+        creator = driver_creators.get(browser_type)
+        if creator:
+            return creator()
         else:
             raise ValueError(f"不支持的浏览器类型: {browser_type}")
 
     @classmethod
-    def _create_chrome_driver(cls):
-        """创建Chrome驱动"""
-        logger.debug("创建Chrome浏览器驱动")
+    def _create_remote_driver(cls, browser_type=None):
+        """创建远程浏览器驱动（Grid模式）"""
+        if browser_type is None:
+            browser_type = cls._current_config.webdriver.browser
 
-        options = webdriver.ChromeOptions()
+        # 获取Grid Hub地址
+        grid_url = cls._current_config.webdriver.grid_hub_url
+        logger.info(f"连接到Selenium Grid: {grid_url}, 浏览器: {browser_type}")
+
+        # 创建浏览器选项
+        options = cls._create_browser_options(browser_type, is_remote=True)
+
+        try:
+            driver = webdriver.Remote(command_executor=grid_url, options=options)
+        except Exception as e:
+            logger.error(f"连接到Selenium Grid失败: {e}")
+            raise
+
+        # 设置通用配置
+        cls._configure_driver(driver, browser_type, grid_url)
+        return driver
+
+    @classmethod
+    def _create_browser_options(cls, browser_type, is_remote=False):
+        """创建浏览器选项配置"""
+        options_creators = {
+            "chrome": cls._create_chrome_options,
+            "firefox": cls._create_firefox_options,
+            "edge": cls._create_edge_options,
+        }
+
+        creator = options_creators.get(browser_type)
+        if not creator:
+            raise ValueError(f"不支持的浏览器类型: {browser_type}")
+
+        return creator(is_remote)
+
+    @classmethod
+    def _create_chrome_options(cls, is_remote=False):
+        """创建Chrome选项"""
+        options = ChromeOptions()
 
         # 基础配置
         options.add_argument("--start-maximized")
@@ -68,10 +123,13 @@ class DriverManager:
         options.add_argument("--no-sandbox")
 
         # 无头模式
-        headless = cls._current_config.get("headless", False)
+        headless = cls._current_config.webdriver.headless
         if headless:
-            options.add_argument("--headless=new")
-            options.add_argument("--disable-gpu")
+            if is_remote:
+                options.add_argument("--headless")
+            else:
+                options.add_argument("--headless=new")
+                options.add_argument("--disable-gpu")
 
         # 禁用自动化提示
         options.add_experimental_option("excludeSwitches", ["enable-automation"])
@@ -90,8 +148,55 @@ class DriverManager:
         }
         options.add_experimental_option("prefs", prefs)
 
-        # 自动下载和管理驱动
-        # 避免并发下载ChromeDriver冲突
+        return options
+
+    @classmethod
+    def _create_firefox_options(cls, is_remote=False):
+        """创建Firefox选项"""
+        options = FirefoxOptions()
+
+        headless = cls._current_config.webdriver.headless
+        if headless:
+            options.add_argument("--headless")
+
+        return options
+
+    @classmethod
+    def _create_edge_options(cls, is_remote=False):
+        """创建Edge选项"""
+        options = EdgeOptions()
+
+        headless = cls._current_config.webdriver.headless
+        if headless:
+            options.add_argument("--headless")
+
+        return options
+
+    @classmethod
+    def _configure_driver(cls, driver, browser_type, grid_url=None):
+        """配置驱动的通用设置"""
+        # 设置隐式等待
+        timeout = cls._current_config.webdriver.timeout
+        driver.implicitly_wait(timeout)
+
+        # 记录启动信息
+        grid_info = f"，Grid: {grid_url}" if grid_url else ""
+        logger.info(f"{browser_type}浏览器启动成功，隐式等待: {timeout}秒{grid_info}")
+
+        # Chrome特殊处理
+        if browser_type == "chrome" and not grid_url:
+            # 绕过webdriver检测
+            driver.execute_script(
+                "Object.defineProperty(navigator, 'webdriver', {get: () => undefined})"
+            )
+
+    @classmethod
+    def _create_chrome_driver(cls):
+        """创建Chrome驱动"""
+        logger.debug("创建Chrome浏览器驱动")
+
+        options = cls._create_browser_options("chrome", is_remote=False)
+
         try:
             # selenium4自动下载驱动
             driver = webdriver.Chrome(options=options)
@@ -101,21 +206,11 @@ class DriverManager:
             )
             logger.info("使用本地ChromeDriver驱动")
             driver_path: Path = DRIVERS_DIR / "chromedriver.exe"
-            logger.info(f"本地ChromeDriver路径: {driver_path}")  # 打印驱动路径
+            logger.info(f"本地ChromeDriver路径: {driver_path}")
             service = ChromeService(str(driver_path))
             driver = webdriver.Chrome(service=service, options=options)
-        # 绕过webdriver检测，防止被网站识别
-        driver.execute_script(
-            "Object.defineProperty(navigator, 'webdriver', {get: () => undefined})"
-        )
 
-        # 设置隐式等待
-        timeout = cls._current_config.timeout
-        driver.implicitly_wait(timeout)
-
-        logger.info(
-            f"Chrome浏览器启动成功，隐式等待: {timeout}秒，无头模式: {headless}"
-        )
+        cls._configure_driver(driver, "chrome")
         return driver
 
     @classmethod
@@ -123,19 +218,10 @@ class DriverManager:
         """创建Firefox驱动"""
         logger.debug("创建Firefox浏览器驱动")
 
-        options = webdriver.FirefoxOptions()
-
-        headless = cls._current_config.get("headless", False)
-
-        if headless:
-            options.add_argument("--headless")
-
+        options = cls._create_browser_options("firefox", is_remote=False)
         driver = webdriver.Firefox(options=options)
 
-        timeout = cls._current_config.timeout
-        driver.implicitly_wait(timeout)
-
-        logger.info(f"Firefox浏览器启动成功，隐式等待: {timeout}秒")
+        cls._configure_driver(driver, "firefox")
         return driver
 
     @classmethod
@@ -143,19 +229,10 @@ class DriverManager:
         """创建Edge驱动"""
         logger.debug("创建Edge浏览器驱动")
 
-        options = webdriver.EdgeOptions()
-
-        headless = cls._current_config.get("headless", False)
-
-        if headless:
-            options.add_argument("--headless")
-
+        options = cls._create_browser_options("edge", is_remote=False)
         driver = webdriver.Edge(options=options)
 
-        timeout = cls._current_config.timeout
-        driver.implicitly_wait(timeout)
-
-        logger.info(f"Edge浏览器启动成功，隐式等待: {timeout}秒")
+        cls._configure_driver(driver, "edge")
         return driver
 
     @classmethod

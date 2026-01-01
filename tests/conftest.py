@@ -28,30 +28,48 @@ def setup_environment(request):
     env = request.config.getoption("--env")
     browser = request.config.getoption("--browser")
     headless = request.config.getoption("--headless")
-    # timeout = request.config.getoption("--page_timeout")
 
     # 设置环境变量
     os.environ["ENV"] = env
+    config._update_current_config()  # 重新加载配置以使用新的环境变量
 
     # 设置配置覆盖
     if browser:
-        config.set_override("browser", browser)
+        config.webdriver.browser = browser
     if headless is not None:
-        config.set_override("headless", headless)
-    # if timeout:
-    #     config.set_override("timeout", int(timeout))
+        config.webdriver.headless = headless
 
     logger.info(f"获取{os.getenv('ENV')}环境配置：{config}")
 
     yield
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture(scope="class", autouse=True)
 def driver():
     """提供浏览器驱动"""
     driver = DriverManager.get_driver()
     yield driver
     DriverManager.quit_driver()
+
+
+@pytest.fixture(scope="class")
+def admin_login(driver):
+    """提供已登录的管理员页面"""
+    from src.pages.admin_login_page import AdminLoginPage
+
+    admin_login_page = AdminLoginPage(driver)
+    admin_login_page.open()
+    admin_login_page.input_username(config.users.admin.username)
+    admin_login_page.input_pwd(config.users.admin.password)
+    admin_login_page.input_captcha()
+    admin_login_page.click_admin_login_btn()
+
+    # 验证登录成功
+    assert admin_login_page.wait_for_title_contains(title_part="JPress后台"), (
+        "登录失败，未跳转到JPress后台页面"
+    )
+
+    return admin_login_page
 
 
 def pytest_configure(config):
@@ -77,9 +95,6 @@ def pytest_addoption(parser):
     )
     parser.addoption(
         "--headless", action="store_true", default=None, help="是否使用无头模式"
-    )
-    parser.addoption(
-        "--page_timeout", action="store", default=None, type=int, help="超时时间（秒）"
     )
 
 

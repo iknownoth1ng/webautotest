@@ -44,23 +44,31 @@ class ConfigManager:
         with open(config_path, "r", encoding="utf-8") as f:
             self._configs = yaml.safe_load(f)
 
-    def set_override(self, key, value):
-        """设置覆盖值"""
-        self._overrides[key] = value
-        self._update_current_config()
-
     def get_config(self, env=None):
         """获取指定环境的配置，并应用覆盖值"""
         if env is None:
-            env = os.getenv("ENV", "test")
+            env = os.getenv("ENV", "dev")
+            # print(f"使用环境变量 ENV={env} 作为配置环境")
 
         if env not in self._configs:
             raise ValueError(f"环境 {env} 不存在")
 
         config = self._configs[env].copy()
 
-        # 应用覆盖值
-        config.update(self._overrides)
+        # 应用覆盖值，处理嵌套属性
+        for override_key, override_value in self._overrides.items():
+            if "." in override_key:
+                # 处理嵌套属性，如 webdriver.browser
+                keys = override_key.split(".")
+                current_config = config
+                for k in keys[:-1]:
+                    if k not in current_config:
+                        current_config[k] = {}
+                    current_config = current_config[k]
+                current_config[keys[-1]] = override_value
+            else:
+                # 处理顶层属性
+                config[override_key] = override_value
 
         return config
 
@@ -106,5 +114,5 @@ class ConfigManager:
             return default
 
 
-# 全局配置实例
+# 全球配置实例
 config = ConfigManager()

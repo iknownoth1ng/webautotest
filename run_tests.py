@@ -10,7 +10,6 @@
 import argparse
 import subprocess
 import sys
-from pathlib import Path
 
 
 def main():
@@ -20,7 +19,7 @@ def main():
 
     parser.add_argument(
         "--env",
-        default="test",
+        default="dev",
         choices=["dev", "test", "prod"],
         help="测试环境: dev, test, prod",
     )
@@ -34,17 +33,20 @@ def main():
 
     parser.add_argument("--headless", action="store_true", help="是否使用无头模式运行")
 
+    # pytest-timeout插件
     parser.add_argument("--timeout", type=int, default=30, help="超时时间（秒）")
 
+    # pytest-xdist插件
     parser.add_argument("--concurrency", type=int, default=1, help="并发执行数")
 
+    # pytest-rerunfailures插件
     parser.add_argument("--reruns", type=int, default=0, help="失败重跑次数")
 
-    parser.add_argument(
-        "--load-env",
-        action="store_true",
-        help="是否从 .env 文件加载环境变量（生产环境建议通过其他方式设置）",
-    )
+    # parser.add_argument(
+    #     "--load_env",
+    #     action="store_true",
+    #     help="是否从 .env 文件加载环境变量（生产环境建议通过其他方式设置）",
+    # )
 
     parser.add_argument(
         "test_path", nargs="?", default="tests/", help="测试路径（默认: tests/）"
@@ -55,17 +57,17 @@ def main():
     logger.info("开始执行测试")
     logger.info(f"测试路径: {args.test_path}")
 
-    # 根据参数决定是否加载 .env 文件
-    if args.load_env:
-        # 检查并加载 .env 文件
-        env_file = Path(".env")
-        if env_file.exists():
-            from dotenv import load_dotenv
+    # # 根据参数决定是否加载 .env 文件
+    # if args.load_env:
+    #     # 检查并加载 .env 文件
+    #     env_file = Path(".env")
+    #     if env_file.exists():
+    #         from dotenv import load_dotenv
 
-            load_dotenv()
-            logger.info(f"已从 {env_file.absolute()} 加载环境变量")
-        else:
-            logger.warning(f".env 文件不存在于 {env_file.absolute()}")
+    #         load_dotenv()
+    #         logger.info(f"已从 {env_file.absolute()} 加载环境变量")
+    #     else:
+    #         logger.warning(f".env 文件不存在于 {env_file.absolute()}")
 
     # 构建pytest命令
     cmd = ["pytest", args.test_path]
@@ -82,6 +84,10 @@ def main():
 
     if args.reruns > 0:
         cmd.extend(["--reruns", str(args.reruns), "--reruns-delay", "2"])
+
+    if args.timeout:
+        # 设置pytest-timeout插件的超时时间
+        cmd.extend(["--timeout", str(args.timeout)])
 
     # 添加详细输出
     cmd.extend(["-v", "-s"])

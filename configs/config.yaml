@@ -2,13 +2,6 @@
 dev: # 开发环境
     base_url: "http://localhost:8080"
     api_url: "http://localhost:3000/api"
-    database:
-        host: "localhost"
-        port: 3306
-        name: "dev_db"
-    browser: "chrome"
-    headless: false
-    timeout: 10 # 隐式等待，全局超时时间，单位秒
     users:
         admin:
             username: "admin"
@@ -16,35 +9,41 @@ dev: # 开发环境
         test_user:
             username: "test@dev.com"
             password: "test123"
+    database:
+        host: "localhost"
+        port: 3306
+        name: "dev_db"
+    webdriver:
+        mode: "local" # 运行模式: `grid` 或 `local` (默认)
+        grid_hub_url: "http://localhost:4444/wd/hub" # Grid Hub地址
+        browser: "chrome" # 指定浏览器: chrome, firefox, edge
+        headless: false # 无头模式 (Grid模式下，部分Node可能已预设)
+        timeout: 10 # 隐式等待时间
 
 test: # 测试环境
-    base_url: "https://test.example.com"
+    base_url: "http://webautotest-jpress-1:8080"
     api_url: "https://test-api.example.com"
+    users:
+        admin:
+            username: "admin"
+            password: "test1234"
+        test_user:
+            username: "test@test.com"
+            password: "test456"
     database:
         host: "test-db.example.com"
         port: 3306
         name: "test_db"
-    browser: "chrome"
-    headless: false
-    timeout: 15
-    users:
-        admin:
-            username: "admin@test.com"
-            password: "test123"
-        test_user:
-            username: "test@test.com"
-            password: "test456"
+    webdriver:
+        mode: "grid" # 运行模式: `grid` 或 `local` (默认)
+        grid_hub_url: "http://localhost:4444/wd/hub" # Grid Hub地址
+        browser: "chrome" # 指定浏览器: chrome, firefox, edge
+        headless: false # 无头模式 (Grid模式下，部分Node可能已预设)
+        timeout: 15 # 隐式等待时间
 
 prod: # 生产环境
     base_url: "https://example.com"
     api_url: "https://api.example.com"
-    database:
-        host: "prod-db.example.com"
-        port: 3306
-        name: "prod_db"
-    browser: "chrome"
-    headless: true
-    timeout: 20
     users:
         admin:
             username: "admin@prod.com"
@@ -52,3 +51,13 @@ prod: # 生产环境
         test_user:
             username: "test@prod.com"
             password: "${PROD_TEST_PASS}"
+    database:
+        host: "prod-db.example.com"
+        port: 3306
+        name: "prod_db"
+    webdriver:
+        mode: "grid" # 运行模式: `grid` 或 `local` (默认)
+        grid_hub_url: "http://selenium-hub:4444/wd/hub" # Grid Hub地址
+        browser: "chrome" # 指定浏览器: chrome, firefox, edge
+        headless: true # 无头模式 (Grid模式下，部分Node可能已预设)
+        timeout: 20 # 隐式等待时间

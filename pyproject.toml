@@ -3,7 +3,7 @@ name = "webautotest"
 version = "0.1.0"
 description = "JPress 自动化测试框架"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dependencies = [
     # 测试框架
     "pytest==7.4.3",
@@ -32,3 +32,9 @@ python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test"]
 addopts = ["-sv", "--alluredir=reports/allure-results", "--clean-alluredir"]
+
+[dependency-groups]
+dev = [
+    "pyright>=1.1.407",
+    "ruff>=0.14.10",
+]
