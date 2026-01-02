@@ -46,7 +46,7 @@ class AdminLoginPage(BasePage):
         if captcha_text:
             # 4. 填写到输入框
             sleep(2)
-            self.input_text(self.captcha_input, "1111")
+            self.input_text(self.captcha_input, captcha_text)
             return True
         return False
 

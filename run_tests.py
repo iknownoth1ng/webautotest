@@ -114,31 +114,31 @@ def main():
         logger.info(f"测试执行完成，返回码: {result.returncode}")
 
         # 如果测试成功，启动 Allure 报告
-        if result.returncode != 0:
-            import shutil
-            import time
+        # if result.returncode:
+        import shutil
+        import time
 
-            logger.info("启动 Allure 报告服务")
-            allure_path = shutil.which("allure")
-            if allure_path:
-                try:
-                    # 启动 allure serve
-                    subprocess.Popen(
-                        [
-                            allure_path,
-                            "serve",
-                            str(REPORTS_DIR / "allure-results"),
-                        ]
-                    )
-                    time.sleep(3)  # 等待服务启动
-                except Exception as e:
-                    logger.error(f"启动 Allure 失败: {e}")
-            else:
-                logger.warning(
-                    "Allure CLI 未找到，请确保已安装并添加到 PATH，或手动运行: allure serve ./reports/allure-results"
+        logger.info("启动 Allure 报告服务")
+        allure_path = shutil.which("allure")
+        if allure_path:
+            try:
+                # 启动 allure serve
+                subprocess.run(
+                    [
+                        allure_path,
+                        "serve",
+                        str(REPORTS_DIR / "allure-results"),
+                    ]
                 )
+                time.sleep(3)  # 等待服务启动
+            except Exception as e:
+                logger.error(f"启动 Allure 失败: {e}")
+        else:
+            logger.warning(
+                "Allure CLI 未找到，请确保已安装并添加到 PATH，或手动运行: allure serve ./reports/allure-results"
+            )
 
-        # sys.exit(result.returncode)
+        sys.exit(result.returncode)
     except KeyboardInterrupt:
         logger.info("测试被用户中断")
         sys.exit(130)
