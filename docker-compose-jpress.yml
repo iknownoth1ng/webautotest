@@ -2,7 +2,8 @@ version: "3.1"
 
 networks:
     webautotest_network:
-        external: true
+        driver: bridge
+#        external: true
 
 services:
     db:

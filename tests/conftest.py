@@ -44,9 +44,10 @@ def setup_environment(request):
 
 
 @pytest.fixture(scope="class", autouse=True)
-def driver():
+def driver(request):
     """提供浏览器驱动"""
-    driver = DriverManager.get_driver()
+    test_name = request.node.name
+    driver = DriverManager.get_driver(test_name = test_name)
     yield driver
     DriverManager.quit_driver()
 

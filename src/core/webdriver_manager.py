@@ -29,10 +29,12 @@ class DriverManager:
     # 线程局部存储，每个线程独立驱动实例
     _local = threading.local()
     _current_config = config
+    _test_name = None
 
     @classmethod
-    def get_driver(cls, browser_type=None):
+    def get_driver(cls, browser_type=None,test_name= None):
         """获取浏览器驱动"""
+        cls._test_name = test_name
         if not hasattr(cls._local, "driver"):
             cls._local.driver = cls._create_driver(browser_type)
         return cls._local.driver
@@ -121,6 +123,11 @@ class DriverManager:
         options.add_argument("--disable-infobars")
         options.add_argument("--disable-dev-shm-usage")
         options.add_argument("--no-sandbox")
+
+        # 录屏文件名称命名
+        options.set_capability('se:name', cls._test_name)
+        # 禁用录屏
+        # options.set_capability('se:recordVideo', False)
 
         # 无头模式
         headless = cls._current_config.webdriver.headless
