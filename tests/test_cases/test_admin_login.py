@@ -7,8 +7,6 @@
 @Desp    : 管理员登录测试用例
 """
 
-from time import sleep
-
 import allure
 import pytest
 
@@ -50,7 +48,6 @@ class TestAdminLogin:
 
         with allure.step("识别并输入验证码"):
             admin_login_page.input_captcha()
-            sleep(5)
 
         with allure.step("点击登录按钮"):
             admin_login_page.click_admin_login_btn()

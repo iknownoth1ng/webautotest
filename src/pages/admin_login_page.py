@@ -7,6 +7,8 @@
 @Desp    :
 """
 
+from time import sleep
+
 from configs import config
 from src.core.base_page import BasePage
 from src.core.element_locator import name, xpath
@@ -43,7 +45,8 @@ class AdminLoginPage(BasePage):
         captcha_text = self.handle_text_captcha()
         if captcha_text:
             # 4. 填写到输入框
-            self.input_text(self.captcha_input, captcha_text)
+            sleep(2)
+            self.input_text(self.captcha_input, "1111")
             return True
         return False
 

@@ -143,20 +143,44 @@ def pytest_runtest_makereport(item, call):
     """测试报告钩子"""
     outcome = yield
     rep = outcome.get_result()
+    logger.info(f"测试报告: {rep} {rep.when} {rep.outcome} {rep.passed}")
 
-    # 只在测试用例执行失败时执行
-    if rep.when == "call" and rep.failed:
-        # logger.error(f"测试 {item.name} 失败: {call.excinfo.value}")
-        # 截图
-        if "driver" in item.fixturenames:
-            driver = item.funcargs["driver"]
-            try:
-                AllureUtils.attach_screenshot("failure_screenshot", driver)
-            except Exception as e:
-                logger.error(f"截图失败: {e}")
+    # 测试执行完成后执行
+    if rep.when == "call" or rep.when == "setup":
+        # 检查是否为远程执行且标记为video
+        logger.info(f"测试执行完成: {item.name} {item}")
+        if (
+            config.webdriver.mode == "grid"
+            and config.webdriver.record_video
+            and item.get_closest_marker("video")
+        ):
+            # 使用类名作为前缀查找视频文件
+            class_name = item.cls.__name__ if item.cls else item.name
+            logger.info(f"使用类名作为前缀查找视频文件: {class_name}")
+            video_files = list(VIDEOS_DIR.glob(f"{class_name}*"))
+            logger.info(f"找到视频文件: {video_files}")
+            if video_files:
+                # 选择最新的视频文件
+                video_path = max(video_files, key=lambda p: p.stat().st_mtime)
+                logger.info(f"附加视频到报告: {video_path}")
+                try:
+                    AllureUtils.attach_video(str(video_path), str(video_path))
+                except Exception as e:
+                    logger.error(f"附加视频失败: {e}")
 
-        # 记录失败信息
-        AllureUtils.attach_text("failure_info", rep.longreprtext)
+        # 在测试失败时执行（包括 setup 和 call 阶段）
+        if rep.failed:
+            logger.error(f"测试 {item.name} 失败: {call.excinfo.value}")
+            # 截图
+            if "driver" in item.fixturenames or "driver" in item.funcargs:
+                driver = item.funcargs["driver"]
+                try:
+                    AllureUtils.attach_screenshot("failure_screenshot", driver)
+                except Exception as e:
+                    logger.error(f"截图失败: {e}")
+
+            # 记录失败信息
+            AllureUtils.attach_text("failure_info", rep.longreprtext)
     """创建测试报告时调用"""
     if call.when == "call" and call.excinfo is not None:
         logger.error(f"测试 {item.name} 失败: {call.excinfo.value}")

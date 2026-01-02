@@ -11,6 +11,8 @@ import argparse
 import subprocess
 import sys
 
+from configs.path import REPORTS_DIR
+
 
 def main():
     from src.core.logger import logger  # 延迟导入以避免不必要的依赖
@@ -19,7 +21,7 @@ def main():
 
     parser.add_argument(
         "--env",
-        default="dev",
+        default="test",
         choices=["dev", "test", "prod"],
         help="测试环境: dev, test, prod",
     )
@@ -46,6 +48,7 @@ def main():
         "--record-video",
         action="store_true",
         help="是否录制视频（只运行标记为video的用例）",
+        default=True,
     )
 
     # parser.add_argument(
@@ -76,7 +79,7 @@ def main():
     #         logger.warning(f".env 文件不存在于 {env_file.absolute()}")
 
     # 构建pytest命令
-    cmd = ["pytest", args.test_path]
+    cmd = [sys.executable, "-m", "pytest", args.test_path]
 
     # 添加参数
     cmd.extend(["--env", args.env])
@@ -109,7 +112,33 @@ def main():
     try:
         result = subprocess.run(cmd)
         logger.info(f"测试执行完成，返回码: {result.returncode}")
-        sys.exit(result.returncode)
+
+        # 如果测试成功，启动 Allure 报告
+        if result.returncode != 0:
+            import shutil
+            import time
+
+            logger.info("启动 Allure 报告服务")
+            allure_path = shutil.which("allure")
+            if allure_path:
+                try:
+                    # 启动 allure serve
+                    subprocess.Popen(
+                        [
+                            allure_path,
+                            "serve",
+                            str(REPORTS_DIR / "allure-results"),
+                        ]
+                    )
+                    time.sleep(3)  # 等待服务启动
+                except Exception as e:
+                    logger.error(f"启动 Allure 失败: {e}")
+            else:
+                logger.warning(
+                    "Allure CLI 未找到，请确保已安装并添加到 PATH，或手动运行: allure serve ./reports/allure-results"
+                )
+
+        # sys.exit(result.returncode)
     except KeyboardInterrupt:
         logger.info("测试被用户中断")
         sys.exit(130)

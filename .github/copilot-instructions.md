@@ -13,10 +13,10 @@
 ## 关键工作流程
 
 -   **设置环境**：运行 `docker-compose -f docker-compose-jpress.yml up -d` 以启动 JPress 应用和 MySQL
--   **运行测试**：使用 `python run_tests.py --env dev --browser chrome`（支持 --headless、--concurrency、--reruns、--record-video）
+-   **运行测试**：使用 `python run_tests.py --env dev --browser chrome`（支持 --headless、--concurrency、--reruns、--record-video）；内部使用 `sys.executable -m pytest` 确保虚拟环境中的 pytest
 -   **分布式测试**：运行 `docker-compose -f docker-compose-grid.yml up -d` 以启动 Selenium Grid，然后使用 `--env test` 运行
--   **报告**：Allure 结果在 `reports/allure-results/` 中，使用 `allure serve reports/allure-results` 生成 HTML
--   **调试**：视频自动录制到 `reports/videos/`，失败时截图
+-   **报告**：Allure 结果在 `reports/allure-results/` 中，使用 `allure serve reports/allure-results` 生成 HTML；测试成功后自动启动 Allure 服务（需要安装 Allure CLI 并添加到 PATH）
+-   **调试**：视频自动录制到 `reports/videos/`，失败时截图；Grid 模式下标记的用例视频自动附加到 Allure 报告
 
 ## 项目特定约定
 
@@ -26,7 +26,7 @@
 -   **固件**：`driver`（类作用域）、`admin_login`（预登录管理员页面）、`video_recorder`（自动附加到 Allure）
 -   **数据加载**：YAML/JSON/CSV 在 `tests/data/` 中，使用 `data_utils.py` 加载
 -   **验证码处理**：在登录流程中使用带有 OCR 的 CaptchaRecognizer 处理文本验证码
--   **视频录制**：通过 `config.webdriver.record_video` 配置，结合 `@pytest.mark.video` 标记控制（标记的用例录制，未标记的不录制）
+-   **视频录制**：通过 `config.webdriver.record_video` 配置，结合 `@pytest.mark.video` 标记控制（标记的用例录制，未标记的不录制）；Grid 模式下视频自动附加到 Allure 报告
 
 ## 示例
 
@@ -40,5 +40,5 @@
 -   **Docker**：应用在容器中，持久化卷（`docker_volumes/`）
 -   **Selenium Grid**：用于测试环境中的并行/分布式执行
 -   **Allure**：自动报告生成，附加视频/截图
--   **视频录制**：BrowserVideoRecorder 捕获测试会话以进行调试</content>
+-   **视频录制**：BrowserVideoRecorder 捕获测试会话以进行调试；Grid 模式下标记用例的视频自动附加到 Allure 报告</content>
     <parameter name="filePath">d:\workspace\vsworkspace\webautotest\.github\copilot-instructions.md
