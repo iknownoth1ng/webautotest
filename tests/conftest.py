@@ -27,6 +27,7 @@ def setup_environment(request):
     env = request.config.getoption("--env")
     browser = request.config.getoption("--browser")
     headless = request.config.getoption("--headless")
+    record_video = request.config.getoption("--record-video")
 
     # 设置环境变量
     os.environ["ENV"] = env
@@ -37,6 +38,8 @@ def setup_environment(request):
         config.webdriver.browser = browser
     if headless is not None:
         config.webdriver.headless = headless
+    if record_video is not None:
+        config.webdriver.record_video = record_video
 
     logger.info(f"获取{os.getenv('ENV')}环境配置：{config}")
 
@@ -46,8 +49,15 @@ def setup_environment(request):
 @pytest.fixture(scope="class", autouse=True)
 def driver(request):
     """提供浏览器驱动"""
+    logger.info(f"用例名称： {request.node}")
     test_name = request.node.name
-    driver = DriverManager.get_driver(test_name = test_name)
+    record_video = False
+    logger.info(f"初始化浏览器驱动: {test_name} {config.webdriver.record_video}")
+    if config.webdriver.record_video:
+        logger.info(f"检查是否需要录制视频 {request.node.get_closest_marker('video')}")
+        if request.node.get_closest_marker("video"):
+            record_video = True
+    driver = DriverManager.get_driver(test_name=test_name, record_video=record_video)
     yield driver
     DriverManager.quit_driver()
 
@@ -122,6 +132,9 @@ def pytest_addoption(parser):
     )
     parser.addoption(
         "--headless", action="store_true", default=None, help="是否使用无头模式"
+    )
+    parser.addoption(
+        "--record-video", action="store_true", default=False, help="是否录制视频"
     )
 
 

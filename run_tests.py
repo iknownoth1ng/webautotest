@@ -42,6 +42,12 @@ def main():
     # pytest-rerunfailures插件
     parser.add_argument("--reruns", type=int, default=0, help="失败重跑次数")
 
+    parser.add_argument(
+        "--record-video",
+        action="store_true",
+        help="是否录制视频（只运行标记为video的用例）",
+    )
+
     # parser.add_argument(
     #     "--load_env",
     #     action="store_true",
@@ -84,6 +90,9 @@ def main():
 
     if args.reruns > 0:
         cmd.extend(["--reruns", str(args.reruns), "--reruns-delay", "2"])
+
+    if args.record_video:
+        cmd.append("--record-video")
 
     if args.timeout:
         # 设置pytest-timeout插件的超时时间

@@ -19,6 +19,7 @@ dev: # 开发环境
         browser: "chrome" # 指定浏览器: chrome, firefox, edge
         headless: false # 无头模式 (Grid模式下，部分Node可能已预设)
         timeout: 10 # 隐式等待时间
+        record_video: false # 是否录制视频
 
 test: # 测试环境
     base_url: "http://webautotest-jpress-1:8080"
@@ -40,6 +41,7 @@ test: # 测试环境
         browser: "chrome" # 指定浏览器: chrome, firefox, edge
         headless: false # 无头模式 (Grid模式下，部分Node可能已预设)
         timeout: 15 # 隐式等待时间
+        record_video: true # 是否录制视频
 
 prod: # 生产环境
     base_url: "https://example.com"
@@ -61,3 +63,4 @@ prod: # 生产环境
         browser: "chrome" # 指定浏览器: chrome, firefox, edge
         headless: true # 无头模式 (Grid模式下，部分Node可能已预设)
         timeout: 20 # 隐式等待时间
+        record_video: false # 是否录制视频

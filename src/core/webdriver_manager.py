@@ -32,15 +32,15 @@ class DriverManager:
     _test_name = None
 
     @classmethod
-    def get_driver(cls, browser_type=None,test_name= None):
+    def get_driver(cls, browser_type=None, test_name=None, record_video=False):
         """获取浏览器驱动"""
         cls._test_name = test_name
         if not hasattr(cls._local, "driver"):
-            cls._local.driver = cls._create_driver(browser_type)
+            cls._local.driver = cls._create_driver(browser_type, record_video)
         return cls._local.driver
 
     @classmethod
-    def _create_driver(cls, browser_type=None):
+    def _create_driver(cls, browser_type, record_video):
         """创建浏览器驱动"""
         # 从配置获取浏览器类型
         if browser_type is None:
@@ -50,7 +50,7 @@ class DriverManager:
         mode = cls._current_config.webdriver.mode
         if mode == "grid":
             logger.info("使用Selenium Grid分布式模式")
-            return cls._create_remote_driver(browser_type)
+            return cls._create_remote_driver(browser_type, record_video)
         else:
             logger.info("使用本地浏览器模式")
             return cls._create_local_driver(browser_type)
@@ -76,7 +76,7 @@ class DriverManager:
             raise ValueError(f"不支持的浏览器类型: {browser_type}")
 
     @classmethod
-    def _create_remote_driver(cls, browser_type=None):
+    def _create_remote_driver(cls, browser_type, record_video):
         """创建远程浏览器驱动（Grid模式）"""
         if browser_type is None:
             browser_type = cls._current_config.webdriver.browser
@@ -86,7 +86,9 @@ class DriverManager:
         logger.info(f"连接到Selenium Grid: {grid_url}, 浏览器: {browser_type}")
 
         # 创建浏览器选项
-        options = cls._create_browser_options(browser_type, is_remote=True)
+        options = cls._create_browser_options(
+            browser_type, is_remote=True, record_video=record_video
+        )
 
         try:
             driver = webdriver.Remote(command_executor=grid_url, options=options)
@@ -99,7 +101,7 @@ class DriverManager:
         return driver
 
     @classmethod
-    def _create_browser_options(cls, browser_type, is_remote=False):
+    def _create_browser_options(cls, browser_type, is_remote=False, record_video=False):
         """创建浏览器选项配置"""
         options_creators = {
             "chrome": cls._create_chrome_options,
@@ -111,10 +113,10 @@ class DriverManager:
         if not creator:
             raise ValueError(f"不支持的浏览器类型: {browser_type}")
 
-        return creator(is_remote)
+        return creator(is_remote, record_video)
 
     @classmethod
-    def _create_chrome_options(cls, is_remote=False):
+    def _create_chrome_options(cls, is_remote=False, record_video=False):
         """创建Chrome选项"""
         options = ChromeOptions()
 
@@ -124,10 +126,16 @@ class DriverManager:
         options.add_argument("--disable-dev-shm-usage")
         options.add_argument("--no-sandbox")
 
-        # 录屏文件名称命名
-        options.set_capability('se:name', cls._test_name)
-        # 禁用录屏
-        # options.set_capability('se:recordVideo', False)
+        # 设置录屏
+        if is_remote:
+            if record_video:
+                # options.set_capability("se:recordVideo", True)
+                # 录屏文件名称命名
+                logger.info(message="设置远程录屏")
+                options.set_capability("se:name", cls._test_name)
+            else:
+                options.set_capability("se:recordVideo", False)
+                logger.info(message="禁止远程录屏")
 
         # 无头模式
         headless = cls._current_config.webdriver.headless
@@ -158,9 +166,20 @@ class DriverManager:
         return options
 
     @classmethod
-    def _create_firefox_options(cls, is_remote=False):
+    def _create_firefox_options(cls, is_remote=False, record_video=False):
         """创建Firefox选项"""
         options = FirefoxOptions()
+
+        if is_remote:
+            # 设置录屏
+            if record_video:
+                logger.info("设置远程录屏")
+                options.set_capability("se:recordVideo", True)
+                # 录屏文件名称命名
+                options.set_capability("se:name", cls._test_name)
+            else:
+                logger.info("禁止远程录屏")
+                options.set_capability("se:recordVideo", False)
 
         headless = cls._current_config.webdriver.headless
         if headless:
@@ -169,9 +188,18 @@ class DriverManager:
         return options
 
     @classmethod
-    def _create_edge_options(cls, is_remote=False):
+    def _create_edge_options(cls, is_remote=False, record_video=False):
         """创建Edge选项"""
         options = EdgeOptions()
+
+        if is_remote:
+            # 设置录屏
+            if record_video:
+                options.set_capability("se:recordVideo", True)
+                # 录屏文件名称命名
+                options.set_capability("se:name", cls._test_name)
+            else:
+                options.set_capability("se:recordVideo", False)
 
         headless = cls._current_config.webdriver.headless
         if headless:

@@ -17,6 +17,7 @@ from src.pages.admin_login_page import AdminLoginPage
 
 
 @allure.feature("管理员登录")
+@pytest.mark.video
 class TestAdminLogin:
     """管理员登录"""
 
@@ -29,6 +30,7 @@ class TestAdminLogin:
 
     @allure.title("管理员成功登录测试")
     @allure.description("测试管理员使用正确的用户名和密码登录系统")
+    # @pytest.mark.video
     def test_admin_login_success(
         self,
         # video_recorder,
